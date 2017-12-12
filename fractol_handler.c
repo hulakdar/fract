@@ -6,7 +6,7 @@
 /*   By: skamoza <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/12/06 16:58:02 by skamoza           #+#    #+#             */
-/*   Updated: 2017/12/06 17:06:59 by skamoza          ###   ########.fr       */
+/*   Updated: 2017/12/12 21:15:45 by skamoza          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 void	fract_destruct(t_map *map)
 {
-	printf("%d %d %d\n", map->endian, map->size_line, map->bits_per_pixel);
+	mlx_destroy_image(map->mlx, map->image_ptr);
 }
 
 void	fract_error(char *error, t_map *parameter)
@@ -28,7 +28,7 @@ void	fract_error(char *error, t_map *parameter)
 
 void	fract_usage(void)
 {
-	ft_putendl("usage: ./fractol [mandelbrot, julia]");
+	ft_putendl("usage: ./fractol [mandelbrot, julia, multibrot, ship]");
 	exit(0);
 }
 
@@ -36,7 +36,18 @@ int		fract_key(int keycode, t_map *map)
 {
 	if (keycode == 53)
 		fract_exit_x(map);
-	printf("Keyboard: key %d", keycode);
+	if (keycode == 69)
+	{
+		map->fract.MaxIterations *= 1.02;
+		map->fract.MaxIterations += 2;
+		map->fract.MaxIterations = llabs(map->fract.MaxIterations);
+	}
+	if (keycode == 78)
+	{
+		map->fract.MaxIterations /= 1.02;
+		map->fract.MaxIterations -= 2;
+		map->fract.MaxIterations = llabs(map->fract.MaxIterations);
+	}
 	fract_draw(map);
 	return (0);
 }
@@ -44,7 +55,6 @@ int		fract_key(int keycode, t_map *map)
 int		fract_exit_x(t_map *parameter)
 {
 	fract_destruct(parameter);
-	system("leaks fract");
 	exit(0);
 	return (0);
 }

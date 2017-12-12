@@ -1,6 +1,6 @@
 CC=clang
-CFLAGS=-Wall -Wextra -Werror -g
-ZADANIE=main fractol_handler fractol_draw
+CFLAGS=-Wall -Wextra -g -O3
+ZADANIE=main fractol_handler fractol_draw fractol_init fractol_plot
 OBJ=$(addprefix obj/, $(addsuffix .o, $(ZADANIE)))
 NAME=fractol
 
