@@ -6,7 +6,7 @@
 /*   By: skamoza <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/12/06 16:32:37 by skamoza           #+#    #+#             */
-/*   Updated: 2017/12/12 21:15:41 by skamoza          ###   ########.fr       */
+/*   Updated: 2017/12/14 20:30:05 by skamoza          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,24 +23,20 @@ void	fract_zoom(int keycode, int x, int y, t_map *map)
 	{
 		new.real = (map->fract.max.real - map->fract.min.real) * 1.19;
 		new.im = (map->fract.max.im - map->fract.min.im) * 1.19;
-		map->fract.MaxIterations /= 1.02;
-		map->fract.MaxIterations -= 2;
-		map->fract.MaxIterations = llabs(map->fract.MaxIterations);
+		map->fract.MaxIterations = fabs(map->fract.MaxIterations * 0.99 - 2);
 	}
 	else
 	{
 		new.real = (map->fract.max.real - map->fract.min.real) * 0.89;
 		new.im = (map->fract.max.im - map->fract.min.im) * 0.89;
-		map->fract.MaxIterations *= 1.02;
-		map->fract.MaxIterations += 2;
-		map->fract.MaxIterations = llabs(map->fract.MaxIterations);
+		map->fract.MaxIterations = fabs(map->fract.MaxIterations * 1.02 + 2);
 	}
 	map->fract.min.im = c.im - new.im * (double)(HEIGHT - y) / (double)HEIGHT;
 	map->fract.min.real = c.real - new.real * ((double)x / WIDTH);
 	map->fract.max.im = map->fract.min.im + new.im;
 	map->fract.max.real = map->fract.min.real + new.real;
-	map->fract.factor.real = (new.real) / (WIDTH - 1);
-	map->fract.factor.im = (new.im) / (HEIGHT - 1);
+	map->fract.factor.real = new.real / WIDTH;
+	map->fract.factor.im = new.im / HEIGHT;
 }
 
 double	fract_iterate(t_fract fract, t_complex c)
@@ -51,6 +47,8 @@ double	fract_iterate(t_fract fract, t_complex c)
 
 	n = 0;
 	z = c;
+	if (fract.is_julia)
+		c = fract.k;
 	while (n++ < fract.MaxIterations)
 	{
 		z2.real = z.real * z.real;
@@ -59,7 +57,7 @@ double	fract_iterate(t_fract fract, t_complex c)
 			break ;
 		z = fract.plot(z, z2, c);
 	}
-	return (n / (double)fract.MaxIterations);
+	return ((double)n / (double)fract.MaxIterations);
 }
 
 void	*thread_the_fract(t_chunk *param)
@@ -67,23 +65,19 @@ void	*thread_the_fract(t_chunk *param)
 	int			x;
 	int			y;
 	t_complex	c;
+	t_fract		fract;
 
 	y = param->y;
+	fract = param->map->fract;
 	while (y < param->ceil)
 	{
 		x = 0;
-		if (param->map->fract.plot != fract_julia)
-			c.im = param->map->fract.max.im - y * param->map->fract.factor.im;
-		else
-			c.im = 0.353;
+		c.im = fract.max.im - y * fract.factor.im;
 		while (x < WIDTH)
 		{
-			if (param->map->fract.plot != fract_julia)
-				c.real = param->map->fract.min.real + x * param->map->fract.factor.real;
-			else
-				c.real = 0.288;
+			c.real = fract.min.real + x * fract.factor.real;
 			param->map->image[(y * (param->map->size_line >> 2)) + x] =
-				fract_inter(fract_iterate(param->map->fract, c));
+		fract_inter(fract_iterate(param->map->fract, c), param->map->offset);
 			x++;
 		}
 		y++;
@@ -107,7 +101,7 @@ void	fract_draw(t_map *map)
 		y += HEIGHT / THREADS;
 		chunks[i].ceil = y;
 		pthread_create(&threads[i], NULL,
-						(void *(*)(void *))thread_the_fract, (void *)&chunks[i]);
+				(void *(*)(void *))thread_the_fract, (void *)&chunks[i]);
 		i++;
 	}
 	while (i-- > 0)
